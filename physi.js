@@ -2,7 +2,6 @@ window.Physijs = (function() {
 	'use strict';
 
 	var SUPPORT_TRANSFERABLE,
-		_is_simulating = false,
 		_Physijs = Physijs, // used for noConflict method
 		Physijs = {}, // object assigned to window.Physijs
 		Eventable, // class to provide simple event methods
@@ -390,6 +389,7 @@ window.Physijs = (function() {
 		Eventable.call( this );
 		THREE.Scene.call( this );
 
+		this._is_simulating = false;
 		this._worker = new Worker( Physijs.scripts.worker || 'physijs_worker.js' );
 		this._worker.transferableMessage = this._worker.webkitPostMessage || this._worker.postMessage;
 		this._materials_ref_counts = {};
@@ -543,7 +543,7 @@ window.Physijs = (function() {
 			this._worker.transferableMessage( data.buffer, [data.buffer] );
 		}
 
-		_is_simulating = false;
+		this._is_simulating = false;
 		this.dispatchEvent( 'update' );
 	};
 
@@ -916,11 +916,11 @@ window.Physijs = (function() {
 	Physijs.Scene.prototype.simulate = function( timeStep, maxSubSteps ) {
 		var object_id, object, update;
 
-		if ( _is_simulating ) {
+		if ( this._is_simulating ) {
 			return false;
 		}
 
-		_is_simulating = true;
+		this._is_simulating = true;
 
 		for ( object_id in this._objects ) {
 			if ( !this._objects.hasOwnProperty( object_id ) ) continue;
@@ -947,6 +947,13 @@ window.Physijs = (function() {
 		this.execute( 'simulate', { timeStep: timeStep, maxSubSteps: maxSubSteps } );
 
 		return true;
+	};
+
+	Physijs.Scene.prototype.killWorker = function() {
+		if ( this._worker ) {
+			this._worker.terminate();
+			this._worker = null;
+		}
 	};
 
 
